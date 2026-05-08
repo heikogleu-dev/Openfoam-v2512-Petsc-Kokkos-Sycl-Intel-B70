@@ -1,0 +1,25 @@
+# Stufe 1 master log (trimmed) — full log was 25 MB; here: phase headers + summary + key error/warning lines
+
+## Phase headers
+=== Phase 3' : Tarball Download + Extract ===
+=== Phase 4: ENV + ThirdParty-Build ===
+=== Phase 5: Core-Build ===
+=== Phase 6: foamInstallationTest ===
+=== Phase 7: icoFoam Cavity Sanity ===
+
+## Phase 8 Bericht block (final)
+
+## Build durations and key markers
+Download: 0min
+Extracting OpenFOAM-v2512.tgz ...
+Extracting ThirdParty-v2512.tar.gz ...
+Extract: 0min
+Tarball-Quelle OK.
+icoFoam.C:112:39:   required from here
+icoFoam.C:107:33:   required from here
+icoFoam      exists     ...OAM-v2512/platforms/linux64GccDPInt32Opt/bin/icoFoam
+FEHLER: icoFoam serial kein 'End'
+FINAL_RC=1
+
+## Disk + system
+WM_PROJECT_DIR: /opt/openfoam-v2512/OpenFOAM-v2512

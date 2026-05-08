@@ -1,0 +1,121 @@
+============================================================
+Plan I patch for PETSc 3.25.1 + oneAPI 2025.3.3 + KokkosKernels
++ Hypre master + Intel Arc Pro B70 (Battlemage)
+============================================================
+Date:    2026-05-08
+Stack:   ESI OpenFOAM v2512 / PETSc 3.25.1 / oneAPI 2025.3.3
+         (= 2025.3.2.21 filename, build 2025.3.3.20260319)
+         / KokkosKernels 5.1.0 (BATCHED=OFF) / Hypre master
+         / Kokkos / Umpire / Caliper
+
+Problem: KokkosKernels 5.1.0's BatchedDblBufGemm has a non-trivially-
+copyable reference member, violating SYCL kernel-parameter strict-
+spec enforced by icpx 2025.3+. Affects KokkosKernels' own ETI builds
+for SYCL+SYCLSPACE+double. Cannot be disabled via CMake flag because
+SPARSE/GRAPH/ALL_COMPONENTS each FORCE-enable BATCHED in
+kokkoskernels_components.cmake.
+
+Strategy:
+  (1) Pre-build a patched KokkosKernels-5.1.0 tarball where SPARSE/
+      GRAPH/ALL no longer FORCE BATCHED ON. Pass to PETSc as
+      --download-kokkos-kernels=file:///path/to/patched.tar.gz so
+      PETSc uses our local source instead of git-cloning fresh.
+  (2) Patch the single PETSc file (aijkok.kokkos.cxx) that calls
+      KokkosBatched directly: replace MatInvertVariableBlockDiagonal_
+      SeqAIJKokkos body with a SETERRQ stub.
+  (3) Use Hypre develop/master via --download-hypre-commit=origin/master
+      to avoid DPL/DPCT 2025.3 internal mismatch in release Hypre.
+  (4) Use oneAPI 2025.3.3 (NOT 2026.0): aligns with PMZFX-validated
+      stack for B70 and avoids the icpx-2026 vs DPCT-2025.3 mismatch.
+      (Intel deprecated DPCT for 2026; 2025.3 is the last consistent
+      stack.)
+  (5) Runtime: pass -use_gpu_aware_mpi 0 since System-OpenMPI is not
+      SYCL-GPU-aware. Use Hypre BoomerAMG smoother name "l1scaled-
+      jacobi" (master); release name was "l1-Jacobi".
+
+Loss:
+  - VPB-Jacobi (Variable Point-Block Jacobi) PC for MATSEQAIJKOKKOS
+    no longer functional (runtime SETERRQ if requested).
+  - PETSc's ex3k tutorial fails on aijkokkos+ILU0 due to IGC
+    (Intel Graphics Compiler) Internal Compiler Error during SYCL
+    JIT of KokkosSparse spiluk on Battlemage. Independent of our
+    patches; backend bug. Tolerated; ex19 and ex19+HYPRE pass.
+
+============================================================
+Patch 1 — kokkos-kernels-5.1.0/cmake/kokkoskernels_components.cmake
+============================================================
+Comment-out three FORCE-enable lines for BATCHED in the
+SPARSE, GRAPH, and ALL_COMPONENTS conditional blocks:
+
+@@ Three sites @@
+-  set(KokkosKernels_ENABLE_COMPONENT_BATCHED ON CACHE BOOL "" FORCE)
++  # Plan I disabled (was:   set(KokkosKernels_ENABLE_COMPONENT_BATCHED ON CACHE BOOL "" FORCE))
+
+Reproduction:
+  cd /opt/openfoam-v2512/tarballs
+  wget https://github.com/kokkos/kokkos-kernels/archive/refs/tags/5.1.0.tar.gz
+  tar xzf 5.1.0.tar.gz
+  sed -i 's|^  set(KokkosKernels_ENABLE_COMPONENT_BATCHED ON CACHE BOOL "" FORCE)$|  # Plan I disabled (was: \0)|' \
+    kokkos-kernels-5.1.0/cmake/kokkoskernels_components.cmake
+  tar czf kokkos-kernels-5.1.0-plan-i.tar.gz kokkos-kernels-5.1.0
+
+============================================================
+Patch 2 — petsc-3.25.1/src/mat/impls/aij/seq/kokkos/aijkok.kokkos.cxx
+============================================================
+Comment out KokkosBatched headers and replace function body:
+
+@@ Around lines 25-26 @@
+-#include <KokkosBatched_LU_Decl.hpp>
+-#include <KokkosBatched_InverseLU_Decl.hpp>
++// Plan I: KokkosBatched headers disabled (KK BATCHED=OFF for SYCL strict-spec compatibility)
++// #include <KokkosBatched_LU_Decl.hpp>
++// #include <KokkosBatched_InverseLU_Decl.hpp>
+
+@@ Function MatInvertVariableBlockDiagonal_SeqAIJKokkos (was lines 1498-1556) @@
+ PETSC_INTERN PetscErrorCode MatInvertVariableBlockDiagonal_SeqAIJKokkos(Mat A, ...)
+ {
+-  /* original body using KokkosBatched::TeamLU + TeamInverseLU */
+-  ...
+-  PetscFunctionReturn(PETSC_SUCCESS);
++  PetscFunctionBegin;
++  (void)bs; (void)bs2; (void)blkMap; (void)work; (void)diagVal;
++  SETERRQ(PetscObjectComm((PetscObject)A), PETSC_ERR_SUP,
++    "VPB-Jacobi for SeqAIJKokkos disabled in Plan I patch (KokkosKernels BATCHED=OFF for SYCL)");
+ }
+
+============================================================
+Patch 3 — bjkokkoskernels.kokkos.cxx — NOT NEEDED
+============================================================
+File entirely wrapped in #if defined(PETSC_HAVE_KOKKOS_KERNELS_BATCH);
+that macro is NOT set in our build, so the file is a no-op.
+
+============================================================
+Patch 4 — letkf_local_analysis.kokkos.cxx — NOT NEEDED
+============================================================
+Mentions "KokkosBatched" only in a comment string at line 678; no
+actual usage. No patch required.
+
+============================================================
+PETSc configure additions (in stufe2-petsc.sh)
+============================================================
+  --download-kokkos-kernels=file:///opt/openfoam-v2512/tarballs/kokkos-kernels-5.1.0-plan-i.tar.gz \
+  --download-hypre-commit=origin/master \
+
+============================================================
+Runtime additions for ex2 / petsc4Foam GPU runs
+============================================================
+  -use_gpu_aware_mpi 0
+  -pc_hypre_boomeramg_relax_type_all l1scaled-jacobi   (master nomenclature)
+
+============================================================
+Verification (Phase 6 ex2 200x200)
+============================================================
+  CPU baseline:      5 iter, KSPSolve 1.16e-02 s, Norm 4.56e-05
+  GPU (Kokkos+SYCL+
+       Hypre+UM):    10 iter, KSPSolve 1.97e-01 s, Norm 6.40e-05
+  Backend (log_view): aijkokkos / Kokkos / SYCL  YES
+  ldd ex2: libsycl.so.8 from /opt/intel/oneapi/2025.3/compiler/2025.3/lib/
+
+GPU run is ~17x slower for this small problem (40k unknowns) because
+of SYCL JIT compile + host-device transfer overhead. Larger meshes
+should invert this ratio.

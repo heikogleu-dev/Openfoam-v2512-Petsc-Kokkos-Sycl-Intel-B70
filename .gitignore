@@ -1,0 +1,25 @@
+# Build artifacts
+*.log
+*.out
+*.o
+*.so
+
+# Exception: keep curated crash/debug logs under logs/ (recursive)
+!logs/
+!logs/**
+!logs/**/*.log
+
+# OpenFOAM run artifacts
+processor*/
+postProcessing/
+log.foamRun
+log.timing
+
+# Editor
+*.swp
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
