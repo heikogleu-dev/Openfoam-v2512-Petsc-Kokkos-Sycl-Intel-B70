@@ -1,0 +1,30 @@
+FoamFile { version 2.0; format ascii; class dictionary; object fvSolution; }
+solvers
+{
+    p
+    {
+        solver  petsc;
+        petsc { options {
+            ksp_type cg; ksp_atol "1e-8"; ksp_rtol "1e-6"; ksp_max_it "500";
+            mat_type aijkokkos;
+            pc_type gamg; pc_gamg_type agg;
+            pc_gamg_agg_nsmooths "1";
+            pc_gamg_coarse_eq_limit "100";
+            pc_gamg_reuse_interpolation true;
+            pc_gamg_aggressive_coarsening "1";
+            pc_gamg_threshold "0.0";
+            pc_gamg_threshold_scale "0.5";
+            pc_gamg_use_sa_esteig true;
+            mg_levels_ksp_max_it "1";
+            mg_levels_esteig_ksp_type cg;
+            mg_levels_ksp_type chebyshev;
+            mg_levels_pc_type jacobi;
+            mg_coarse_ksp_type cg;
+            mg_coarse_ksp_max_it "2";
+        } }
+        tolerance 1e-6; relTol 0.05;
+    }
+    pFinal { $p; relTol 0; }
+    U { solver smoothSolver; smoother symGaussSeidel; tolerance 1e-5; relTol 0; }
+}
+PISO { nCorrectors 2; nNonOrthogonalCorrectors 0; pRefCell 0; pRefValue 0; }

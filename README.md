@@ -6,7 +6,7 @@
 [![Hypre](https://img.shields.io/badge/Hypre-master%20%2B%20UM-purple)](https://github.com/hypre-space/hypre)
 [![Kokkos](https://img.shields.io/badge/KokkosKernels-5.1.0%20BATCHED%3DOFF-red)](https://github.com/kokkos/kokkos-kernels)
 [![Intel Arc Pro B70](https://img.shields.io/badge/Intel%20Arc%20Pro-B70%20Pro%2032GB-blue)](https://www.intel.com/content/www/us/en/products/sku/245797)
-[![Status](https://img.shields.io/badge/Stage-Stufe%202%20GO%20%E2%80%94%20Stufe%203%20pending-brightgreen)]()
+[![Status](https://img.shields.io/badge/Stage-Build%20GO%20%E2%80%94%20AMG%20path%20blocked%20upstream-yellow)]()
 
 > **TL;DR: PETSc 3.25.1 with Kokkos+SYCL+Hypre BoomerAMG works on B70 — but only after 14 patch iterations.**
 >
@@ -24,10 +24,14 @@ attempt with Foundation OpenFOAM 13](https://github.com/heikogleu-dev/Openfoam13
 which concluded that no working SYCL preconditioner shipped in Ginkgo 1.10/1.11.
 PETSc 3.25 + Hypre BoomerAMG via Kokkos-SYCL is the alternative path.
 
-**Status (Stufe 2):** Build pipeline GREEN. All upstream incompatibilities
-either patched, worked-around, or filed for upstream. Stufe 3 (petsc4Foam
-adapter integration with the 34M-cell automotive testcase) is the next
-milestone.
+**Status (May 2026, β5h2):** Build pipeline GREEN. Foundation pressure
+path (CG + Jacobi + `aijkokkos`) and chebyshev+jacobi (Eta, finding 21)
+both run end-to-end on GPU on Release build. The GAMG-on-`aijkokkos`
+path crashes with `SEGV signal 11` in shared low-level code that no
+configuration-level workaround bypasses (finding 19); a debug rebuild
+heals the crash but routes SPGEMM to CPU and is too slow for the 34M
+automotive case (finding 20). See finding 22 for the pioneer-status
+roadmap.
 
 ---
 
@@ -206,14 +210,32 @@ CeCILL-C, Intel oneAPI EULA — none redistributed).
 
 ## Status (May 2026)
 
-- **Stufe 1 (ESI OpenFOAM v2512):** GO — `icoFoam` cavity serial + parallel-4 converges
-- **Stufe 2 (PETSc + Kokkos + SYCL + Hypre):** GO — ex2 GPU sanity passes, backend confirmed
-- **Stufe 3 (petsc4Foam adapter + 34M-cell automotive case):** PENDING
+| Path | Build | Status | Performance vs. CPU baseline |
+|---|---|---|---|
+| Foundation (CG + Jacobi + `aijkokkos` + `vec_type kokkos`) | β5h2 Release | ✓ productive | unknown for MR2 (jacobi too weak for 34M without stronger PC) |
+| GAMG family (5 configurations tested) | β5h2 Release | ✗ SEGV in `MatProductSymbolic_SeqAIJKokkos` (finding 19) | — |
+| GAMG agg | F1 Debug | ✓ runs but setup is CPU-only, ~3× slower than Release (finding 20) | not productive at 34M |
+| **chebyshev + jacobi (Eta)** | **β5h2 Release** | ✓ runs end-to-end on GPU, 0 H2D/D2H in inner loop (finding 21) | estimated 4–7× slower than CPU baseline on MR2 |
+| Hypre BoomerAMG | β5h2 Release | ✓ builds and runs, but CPU-only via `MatConvert` (finding 17) | hybrid: AMG CPU + KSP loop GPU |
+
+**β5h2 build pipeline:** Configure 8 min, total wall-clock ≈ 52 min on a 24-core machine.
+Stack: PETSc 3.25.1 + Kokkos 5.1.0 + KokkosKernels develop (commit `6620b0a`) +
+Hypre master + oneAPI 2025.3.3 + `Kokkos_ARCH_INTEL_GEN=ON`.
+
+**Roadmap re-opened.** `aijkokkos` + GAMG + SYCL is not productive on BMG-G31
+in May 2026 (six months after Battlemage launch). Re-evaluate when:
+
+- Kokkos 5.2/6.0 ships with BMG-specific arch flag
+- KokkosKernels SPGEMM gains BMG validation
+- PETSc CI gains real Intel-GPU coverage for GAMG + `aijkokkos`
+
+**ETA: 6–18 months.** See finding 22 for the full pioneer-status analysis.
 
 When you reproduce, expect **45–90 min** of build time on a 24-core
 machine after Plan I is in place. From scratch (downloads + retries) the
-13-iteration discovery process took ≈ 4 hours. This repo cuts that to
-≈ 1 hour by handing you Plan I directly.
+13-iteration discovery process took ≈ 4 hours, and the β5/β5h/F1/F-PRE
+exploration on top added another ≈ 6 hours. This repo cuts the entire
+journey to ≈ 1 hour by handing you β5h2 directly.
 
 *Pioneer documentation independently maintained.*
 *Full reproducibility intended for the next Battlemage CFD pioneer.*
