@@ -167,6 +167,39 @@ for full run details.
 
 ---
 
+## Findings Index
+
+| # | Title | File |
+|---|---|---|
+| 01 | libparmetis-dev removed in Ubuntu 26.04 — replace with libscotchparmetis-dev | [↗](findings/01_libparmetis_replaced_libscotchparmetis_u26.md) |
+| 02 | Bundled Scotch 6.1.0 fails to compile under GCC 15 — switch to system Scotch | [↗](findings/02_scotch_6_1_0_gcc15_strict_prototype.md) |
+| 03 | ESI GitLab now requires sign-in — fall back to public dl.openfoam.com tarballs | [↗](findings/03_esi_repo_login_required_tarball_fallback.md) |
+| 04 | OpenFOAM `etc/bashrc` aborts under `set -u` — unbound `WM_PROJECT_DIR` | [↗](findings/04_set_u_bashrc_184_unbound.md) |
+| 05 | oneAPI `setvars.sh` puts Intel-MPI ahead of system OpenMPI — repair PATH | [↗](findings/05_oneapi_intel_mpi_path_priority.md) |
+| 06 | Legacy `/usr/bin/ocloc` cannot AOT-compile for Battlemage — drop AOT, use JIT | [↗](findings/06_legacy_ocloc_no_battlemage_aot_jit_fallback.md) |
+| 07 | KokkosKernels Batched GEMM violates SYCL strict-spec — kernel param not trivially copyable | [↗](findings/07_kk_batched_sycl_strict_spec.md) |
+| 08 | KokkosKernels SPARSE forces BATCHED back ON — patch components.cmake | [↗](findings/08_kk_components_force_batched_via_sparse.md) |
+| 09 | PETSc `--download-kokkos-kernels=...tar.gz` only honors `file://` URLs | [↗](findings/09_petsc_local_tarball_file_url.md) |
+| 10 | oneAPI 2026.0 ships no DPCT — DPL still imports it; install 2025.3 in parallel | [↗](findings/10_oneapi_2026_dpct_2025_3_mismatch.md) |
+| 11 | Hypre release fails on oneAPI 2025.3 DPL constructor — pull `origin/master` | [↗](findings/11_hypre_master_required.md) |
+| 12 | PETSc `aijkok.kokkos.cxx` hard-depends on KokkosBatched — patch one function | [↗](findings/12_aijkok_kokkosbatched_dependency.md) |
+| 13 | System OpenMPI is not SYCL-GPU-aware — set `-use_gpu_aware_mpi 0` | [↗](findings/13_use_gpu_aware_mpi_off.md) |
+| 14 | `make check` ex3k triggers IGC ICE on Battlemage — backend bug, ignore for ILU | [↗](findings/14_ex3k_igc_compiler_error_battlemage.md) |
+| 15 | Hypre `--enable-unified-memory` builds allocate-on-USM but compute on CPU | [↗](findings/15_hypre_um_not_real_gpu_pc.md) |
+| 16 | petsc4Foam's `-eqn_*_vec_type` is ignored by PETSc | [↗](findings/16_petsc4foam_vec_type_prefix_ignored.md) |
+| 17 | `aijkokkos` matrix with Hypre PC does NOT run on GPU | [↗](findings/17_aijkokkos_no_real_sycl_compute_when_pc_is_hypre.md) |
+| 18 | Stufe-3: 34M-cell × np=8 → 90 GB DRAM explosion at Hypre BoomerAMG setup | [↗](findings/18_stufe3_34m_oom_8rank_hypre_hierarchy.md) |
+| 19 | β5h2 build successful — AMG wall confirmed across all five GAMG configurations | [↗](findings/19_beta5h2_build_success_amg_wall_confirmed.md) |
+| 20 | Debug build heals the GAMG crash — but setup is CPU-only and too slow for production | [↗](findings/20_debug_build_heals_crash_but_too_slow.md) |
+| 21 | Eta configuration: chebyshev + jacobi — a non-AMG GPU preconditioner path on Release | [↗](findings/21_eta_chebyshev_jacobi_non_amg_gpu_path.md) |
+| 22 | Pioneer status: aijkokkos + GAMG + SYCL is not productive on BMG-G31 in May 2026 | [↗](findings/22_pioneer_status_aijkokkos_gamg_sycl_not_productive.md) |
+| 23 | B70 hardware is functional — the AMG wall is a software bug | [↗](findings/23_b70_hardware_functional_amg_wall_is_software.md) |
+| 24 | PETSc aijkokkos SpMV reaches 79 % of Triad-peak on B70 | [↗](findings/24_petsc_aijkokkos_spmv_79_percent_triad.md) |
+| 25 | Ginkgo SpMV is 3.2× faster than PETSc aijkokkos on B70 (microbenchmark) | [↗](findings/25_ginkgo_3x_faster_microbench.md) |
+| 26 | oneAPI 2025.3 and 2026.0 coexist on the same workstation | [↗](findings/26_oneapi_2025_2026_coexistence.md) |
+
+---
+
 ## License
 
 This repository's **own work** (READMEs, findings, build scripts, patch
