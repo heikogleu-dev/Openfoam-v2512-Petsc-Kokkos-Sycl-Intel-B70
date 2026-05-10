@@ -92,6 +92,19 @@ or contact the maintainer; we will happily redact.
 
 ---
 
+## OpenFOAM Configuration Files (`fvSolution` Templates)
+
+The repository contains short OpenFOAM dictionary templates under
+`configs/validated/` (e.g. `fvSolution-eta`, `fvSolution-alpha`, …) which
+include the `FoamFile { … }` format header (≤ 5 lines) used by all
+OpenFOAM dictionaries to identify file format. These headers are
+**trivial format markers**, not substantial OpenFOAM source code. The
+repository is GPL-3.0-or-later — fully consistent with OpenFOAM's
+GPL-3.0-or-later — so even if these snippets were treated as derivative
+works, no license incompatibility arises.
+
+---
+
 ## What This Repository **Does Not** Contain
 
 To be explicit about what is **not** redistributed here:

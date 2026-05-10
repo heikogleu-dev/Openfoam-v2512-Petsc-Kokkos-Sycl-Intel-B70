@@ -115,3 +115,44 @@ these. Until then, this repo pins `--download-hypre-commit=origin/master`.
 
 When we file these, the issue bodies will be added under [findings/](findings/)
 following the sister repo's `*_issue_body.md` convention.
+
+
+---
+
+## Hardware Diagnostic Run — 2026-05-10
+
+Standalone cross-stack SpMV/CG diagnostic on Intel Arc Pro B70 (BMG-G31),
+Ubuntu 26.04 LTS, oneAPI 2025.3.3 / 2026.0, comparing oneMKL Sparse,
+PETSc `aijkokkos`, and Ginkgo dpcpp on an identical 1M-row Poisson 5-point
+reference matrix (4.996M nnz).
+
+**Method.** Generator `gen_matrix.cpp` writes a 1000×1000 5-point Poisson
+matrix in MatrixMarket format. Three test harnesses load the matrix and
+run 1000 SpMV iterations after 10 warm-up calls. Timing brackets the
+inner loop only; CG-loop number includes vector ops + sync per iteration.
+
+**Hardware:** Intel Arc Pro B70, 32 GB GDDR6, BMG-G31 (device `0xe223`).
+**Software:** oneAPI 2025.3.3 for PETSc β5h2, oneAPI 2026.0 for Ginkgo
+(`/opt/ginkgo` linked against `libsycl.so.9`).
+
+**Results.**
+
+| Stack | ms/iter | Effective BW |
+|---|---|---|
+| oneMKL Sparse CG (full loop) | 0.741 | 161 GB/s |
+| PETSc aijkokkos (pure SpMV) | 0.287 | 418 GB/s (79 % Triad) |
+| Ginkgo dpcpp (pure SpMV) | 0.089 | 1340 GB/s\* |
+
+\* Cache-resident `x` (8 MB fits in B70 L2 ≈ 12 MB). Reported BW is
+arithmetic; physical peak is 608 GB/s.
+
+**Caveat.** SpMV-only microbenchmark. The Ginkgo number reflects cache
+effects that shrink for larger systems. Diagnostic value: confirms B70
+hardware functional for sparse linear algebra; the AMG wall in the
+sister repo is a software bug, not a hardware limitation.
+
+**Logs:** `logs/diag-2026-05-10/` (gzipped).
+
+**Cross-stack interpretation:** see findings 23-26 (PETSc repo) and
+finding 23 (Ginkgo repo) for the symmetric write-up.
+
