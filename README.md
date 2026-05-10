@@ -231,6 +231,26 @@ in May 2026 (six months after Battlemage launch). Re-evaluate when:
 
 **ETA: 6–18 months.** See finding 22 for the full pioneer-status analysis.
 
+## Hardware Diagnostic — May 2026 (Findings 23-26)
+
+After establishing the upstream-blocked status above, we ran three
+standalone SpMV/CG benchmarks **outside the OpenFOAM stack** to
+distinguish hardware/runtime issues from software bugs. All three
+consumed the same 1M × 1M Poisson 5-point stencil on the same B70.
+
+| Question | Answer | Source |
+|---|---|---|
+| Is the AMG wall a hardware bug? | **No.** B70 + oneAPI 2025.3 + SYCL is functional for sparse linear algebra. | [Finding 23](findings/23_b70_hardware_functional_amg_wall_is_software.md) |
+| How close to peak does PETSc aijkokkos SpMV get? | 79 % of Triad-measured BW (418 GB/s, 0.287 ms/iter on 1M unknowns) | [Finding 24](findings/24_petsc_aijkokkos_spmv_79_percent_triad.md) |
+| How does Ginkgo's dpcpp backend compare on the same hardware? | 3.2× faster on pure SpMV microbenchmark (0.089 ms/iter, cache-resident x) | [Finding 25](findings/25_ginkgo_3x_faster_microbench.md) |
+| Was the strategic miscall hardware or software? | Software-stack maturity for `aijkokkos+GAMG+SYCL`, **not** Battlemage hardware | [Finding 23](findings/23_b70_hardware_functional_amg_wall_is_software.md) |
+
+The 3.2× SpMV gap to Ginkgo is a microbenchmark with cache-resident
+vectors, not a production verdict. See [the sister
+repo](https://github.com/heikogleu-dev/Openfoam13---GPU-Offloading-Intel-B70-Pro)
+for the orthogonal Ginkgo solver-stability picture that determines
+whether this microbenchmark advantage translates to a real CFD speedup.
+
 When you reproduce, expect **45–90 min** of build time on a 24-core
 machine after Plan I is in place. From scratch (downloads + retries) the
 13-iteration discovery process took ≈ 4 hours, and the β5/β5h/F1/F-PRE
