@@ -24,6 +24,18 @@ attempt with Foundation OpenFOAM 13](https://github.com/heikogleu-dev/Openfoam13
 which concluded that no working SYCL preconditioner shipped in Ginkgo 1.10/1.11.
 PETSc 3.25 + Hypre BoomerAMG via Kokkos-SYCL is the alternative path.
 
+---
+
+## Part of the Battlemage CFD Pioneer Series
+
+This is one of three repositories documenting CFD on Intel Arc Pro B70 (BMG-G31):
+
+1. **[FluidX3D-Intel-B70](https://github.com/heikogleu-dev/FluidX3D-Intel-B70)** — LBM via OpenCL. **99.5 % peak bandwidth, 5 464 MLUPS** (production-ready as iteration sandbox for vehicle aero).
+2. **[Openfoam13---GPU-Offloading-Intel-B70-Pro](https://github.com/heikogleu-dev/Openfoam13---GPU-Offloading-Intel-B70-Pro)** — FVM pressure solver via Ginkgo SYCL. **Hardware ready, software stack maturing** (FP64 96 %, kernel-launch CUDA-par, GPU 66 % idle waiting for plumbing).
+3. **This repo — [Openfoam-v2512-Petsc-Kokkos-Sycl-Intel-B70](https://github.com/heikogleu-dev/Openfoam-v2512-Petsc-Kokkos-Sycl-Intel-B70)** — PETSc-Kokkos-SYCL attempt. **Abandoned at GAMG path** — documents what doesn't work yet on this stack.
+
+Together: first publicly documented end-to-end CFD evaluation on Battlemage Xe2 (Intel Arc Pro B70).
+
 **Status (May 2026, β5h2):** Build pipeline GREEN. Foundation pressure
 path (CG + Jacobi + `aijkokkos`) and chebyshev+jacobi (Eta, finding 21)
 both run end-to-end on GPU on Release build. The GAMG-on-`aijkokkos`
